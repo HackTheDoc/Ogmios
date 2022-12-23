@@ -100,6 +100,13 @@ void moveCursorRight() {
     cursorX++;
 }
 
+void insertNewLine() {
+    std::string newLine = lines[cursorY].substr(cursorX);
+    lines[cursorY] = lines[cursorY].substr(0, cursorX);
+    lines.insert(lines.begin() + cursorY + 1, newLine);
+    moveCursorDown();
+}
+
 void renderText() {
     int y = 0;
     for (int i = 0; i < (int)lines.size(); i++) {
@@ -157,6 +164,33 @@ void load(const std::string& filename) {
     in.close();
 }
 
+void handleUIEvent(const SDL_Event& event) {
+    int mouseX, mouseY;
+    SDL_GetMouseState(&mouseX, &mouseY);
+    if (mouseX >= 0 && mouseX < WINDOW_WIDTH && mouseY >= 0 && mouseY < WINDOW_HEIGHT) {
+        int lineIndex = mouseX / 22;
+        std::cout << lineIndex << std::endl;
+        
+        int w,h;
+        TTF_SizeText(font, lines[lineIndex].c_str(), &w, &h);
+
+        int charPos = 0;
+        int width;
+        for (char c : lines[lineIndex]) {
+            int charW, charH;
+            TTF_SizeText(font, &c, &charW, &charH);
+            if (width + charW / 2 > mouseX) {
+                break;
+            }
+            width += charW;
+            charPos++;
+        }
+
+        cursorX = charPos;
+        cursorY = lineIndex;
+    }
+}
+
 bool loop() {
     bool looping = true;
 
@@ -187,8 +221,7 @@ bool loop() {
                         deleteChar();
                         break;
                     case SDLK_RETURN:           // NEW LINE
-                        lines.push_back("");
-                        moveCursorDown();
+                        insertNewLine();
                         break;
                     case SDLK_c:                // COPY
                         if (SDL_GetModState() & KMOD_CTRL) {
@@ -200,10 +233,12 @@ bool loop() {
                             lines[cursorY].append(SDL_GetClipboardText());
                         }
                         break;
-                    
                     default:
                         break;
                 }
+                break;
+            case SDL_MOUSEBUTTONUP:
+                handleUIEvent(event);
                 break;
             default:
                 break;
