@@ -53,7 +53,7 @@ bool init() {
         success = false;
     }
 
-    font = TTF_OpenFont("Comfortaa-Regular.ttf", 16);
+    font = TTF_OpenFont("fonts/Nunito-Regular.ttf", 16);
 
     SDL_StartTextInput();
 
@@ -145,7 +145,7 @@ void renderText() {
     for (int i = 0; i < static_cast<int>(lines.size()); i++) {
         // Render Line Index
         std::string index = std::to_string(i);
-        SDL_Surface* iS = TTF_RenderText_Solid(font, index.c_str(), indexColor);
+        SDL_Surface* iS = TTF_RenderText_Blended(font, index.c_str(), indexColor);
         SDL_Texture* iT = SDL_CreateTextureFromSurface(renderer, iS);
         SDL_Rect iR = {2, y, iS->w, iS->h};
 
@@ -159,7 +159,7 @@ void renderText() {
 
         // Render Line Text
         if (lines[i].size()) {
-            SDL_Surface* tS = TTF_RenderText_Solid(font, lines[i].c_str(), fontColor);
+            SDL_Surface* tS = TTF_RenderText_Blended(font, lines[i].c_str(), fontColor);
             SDL_Texture* tT = SDL_CreateTextureFromSurface(renderer, tS);
             SDL_Rect tR = {TEXT_LEFT_SPAN, y, tS->w, tS->h};
 
@@ -176,7 +176,7 @@ void renderCursor() {
     int w,h;
     TTF_SizeText(font, lines[cursorY].substr(0, cursorX).c_str(), &w, &h);
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-    SDL_RenderDrawLine(renderer, w + TEXT_LEFT_SPAN, cursorY * 22 , w + TEXT_LEFT_SPAN, (cursorY + 1) * 22 - 4);
+    SDL_RenderDrawLine(renderer, w + TEXT_LEFT_SPAN, cursorY * 22 +2, w + TEXT_LEFT_SPAN, (cursorY + 1) * 22 - 2);
 }
 
 void renderUI() {
