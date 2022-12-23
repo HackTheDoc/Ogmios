@@ -167,21 +167,23 @@ void load(const std::string& filename) {
 void handleUIEvent(const SDL_Event& event) {
     int mouseX, mouseY;
     SDL_GetMouseState(&mouseX, &mouseY);
+    
     if (mouseX >= 0 && mouseX < WINDOW_WIDTH && mouseY >= 0 && mouseY < WINDOW_HEIGHT) {
-        int lineIndex = mouseX / 22;
-        std::cout << lineIndex << std::endl;
+        int lineIndex = mouseY / 22;
         
         int w,h;
         TTF_SizeText(font, lines[lineIndex].c_str(), &w, &h);
 
         int charPos = 0;
-        int width;
+        int width = 0;
         for (char c : lines[lineIndex]) {
             int charW, charH;
             TTF_SizeText(font, &c, &charW, &charH);
+            
             if (width + charW / 2 > mouseX) {
                 break;
             }
+
             width += charW;
             charPos++;
         }
