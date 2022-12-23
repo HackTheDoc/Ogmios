@@ -125,12 +125,22 @@ bool deleteLine() {
     return deleted;
 }
 
+void clearEditor() {
+    lines.clear();
+    lines.push_back("");
+
+    cursorY = 0;
+    cursorX = 0;
+}
+
 void save(const std::string& filename) {
     std::ofstream out(filename);
     for (const std::string& line : lines) {
         out << line << std::endl;
     }
     out.close();
+
+    clearEditor();
 }
 
 void load(const std::string& filename) {
@@ -141,6 +151,9 @@ void load(const std::string& filename) {
         lines.push_back(line);
     }
     in.close();
+
+    cursorY = static_cast<int>(lines.size() - 1);
+    cursorX = static_cast<int>(lines[cursorY].size());
 }
 
 void renderText() {
@@ -225,11 +238,20 @@ void renderUI() {
 }
 
 void handleUIEvent(const SDL_Event& event) {
-    int mouseX, mouseY;
-    SDL_GetMouseState(&mouseX, &mouseY);
-    
-    if (mouseX >= 0 && mouseX < WINDOW_WIDTH && mouseY >= 0 && mouseY < WINDOW_HEIGHT) {
-        int lineIndex = mouseY / 22;
+    SDL_Point mousePos;
+    SDL_GetMouseState(&mousePos.x, &mousePos.y);
+
+    // Save Button Event
+    if (SDL_PointInRect(&mousePos, &saveButtonBox)) {
+        save("temp.txt");
+    }
+    // Load Button Event
+    else if (SDL_PointInRect(&mousePos, &loadButtonBox)) {
+        load("./temp.txt");
+    }
+    //  Move mouse in editor
+    else if (mousePos.y >= UI_HEIGHT && mousePos.y < WINDOW_HEIGHT && mousePos.x >= 0 && mousePos.x < WINDOW_WIDTH) {
+        int lineIndex = (mousePos.y - UI_HEIGHT) / 22;
         
         int w,h;
         TTF_SizeText(font, lines[lineIndex].c_str(), &w, &h);
@@ -240,7 +262,7 @@ void handleUIEvent(const SDL_Event& event) {
             int charW, charH;
             TTF_SizeText(font, &c, &charW, &charH);
             
-            if (width + charW / 2 > mouseX) {
+            if (width + charW / 2 > mousePos.x) {
                 break;
             }
 
