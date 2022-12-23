@@ -7,7 +7,7 @@
 
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
-const int UI_HEIGHT = 50;
+const int UI_HEIGHT = 30;
 const int TEXT_LEFT_SPAN = 24;
 
 std::vector<std::string> lines;
@@ -20,6 +20,9 @@ SDL_Renderer* renderer = nullptr;
 TTF_Font* font = nullptr;
 SDL_Color fontColor = {0, 0, 0, 255};
 SDL_Color indexColor = {51, 51, 51, 255};
+
+SDL_Rect saveButtonBox = {5, 5, 50, UI_HEIGHT-10};
+SDL_Rect loadButtonBox = {5 + saveButtonBox.x + saveButtonBox.w, 5, 50, UI_HEIGHT-10};
 
 
 bool init() {
@@ -141,7 +144,7 @@ void load(const std::string& filename) {
 }
 
 void renderText() {
-    int y = 0;
+    int y = UI_HEIGHT + 2;
     for (int i = 0; i < static_cast<int>(lines.size()); i++) {
         // Render Line Index
         std::string index = std::to_string(i);
@@ -176,10 +179,49 @@ void renderCursor() {
     int w,h;
     TTF_SizeText(font, lines[cursorY].substr(0, cursorX).c_str(), &w, &h);
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-    SDL_RenderDrawLine(renderer, w + TEXT_LEFT_SPAN, cursorY * 22 +2, w + TEXT_LEFT_SPAN, (cursorY + 1) * 22 - 2);
+    SDL_RenderDrawLine(renderer,
+        w + TEXT_LEFT_SPAN,
+        cursorY * 22 + UI_HEIGHT + 4,
+        w + TEXT_LEFT_SPAN,
+        (cursorY + 1) * 22 + UI_HEIGHT
+        );
 }
 
 void renderUI() {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 127);
+
+    // Save Button Box
+    SDL_RenderDrawRect(renderer, &saveButtonBox);
+
+    // Save Button Label
+    SDL_Surface* saveButtonSurface = TTF_RenderText_Blended(font, "Save", fontColor);
+    SDL_Texture* saveButtonTexture = SDL_CreateTextureFromSurface(renderer, saveButtonSurface);
+    SDL_Rect saveButton = {10, 4, saveButtonSurface->w, saveButtonSurface->h};
+    SDL_RenderCopy(renderer, saveButtonTexture, nullptr, &saveButton);
+    SDL_FreeSurface(saveButtonSurface);
+    SDL_DestroyTexture(saveButtonTexture);
+
+    // Load Button Box
+    SDL_RenderDrawRect(renderer, &loadButtonBox);
+
+    // Load Button Label
+    SDL_Surface* loadButtonSurface = TTF_RenderText_Blended(font, "Load", fontColor);
+    SDL_Texture* loadButtonTexture = SDL_CreateTextureFromSurface(renderer, loadButtonSurface);
+    SDL_Rect loadButton = {loadButtonBox.x + 5, 4, loadButtonSurface->w, loadButtonSurface->h};
+    SDL_RenderCopy(renderer, loadButtonTexture, nullptr, &loadButton);
+    SDL_FreeSurface(loadButtonSurface);
+    SDL_DestroyTexture(loadButtonTexture);
+
+    // Draw Editor name
+    SDL_Surface* nameSurface = TTF_RenderText_Blended(font, "Ogmios Editor", fontColor);
+    SDL_Texture* nameTexture = SDL_CreateTextureFromSurface(renderer, nameSurface);
+    SDL_Rect nameRect = {WINDOW_WIDTH - nameSurface->w - 5, 4, nameSurface->w, nameSurface->h};
+    SDL_RenderCopy(renderer, nameTexture, nullptr, &nameRect);
+    SDL_FreeSurface(nameSurface);
+    SDL_DestroyTexture(nameTexture);
+
+    // Draw UI Border
+    SDL_RenderDrawLine(renderer, 0, UI_HEIGHT, WINDOW_WIDTH, UI_HEIGHT);
 }
 
 void handleUIEvent(const SDL_Event& event) {
