@@ -66,6 +66,10 @@ void insertChar(char c) {
 }
 
 void deleteChar() {
+    if (cursorX == 0 && cursorY > 0) {
+        cursorY--;
+        lines.pop_back();
+    }
     if (cursorX > 0) {
         lines[cursorY].erase(cursorX - 1, 1);
         cursorX--;
