@@ -86,25 +86,27 @@ void moveCursorDown() {
 void renderText() {
     int y = 0;
     for (const std::string& line : lines) {
-        std::cout << "Bloup Bloup 0" << std::endl;
-        SDL_Surface* s = TTF_RenderText_Solid(font, line.c_str(), fontColor);
-        std::cout << "Bloup Bloup 1" << std::endl;
-        SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
-        std::cout << "Bloup Bloup 2" << std::endl;
-        SDL_Rect r = {0, y, s->w, s->h};
-        std::cout << "Bloup Bloup 3" << std::endl;
-        
-        SDL_RenderCopy(renderer, t, nullptr, &r);
-        std::cout << "Bloup Bloup 4" << std::endl;
-        SDL_FreeSurface(s);
-        std::cout << "Bloup Bloup 5" << std::endl;
-        SDL_DestroyTexture(t);
-        std::cout << "Bloup Bloup 6" << std::endl;
+        if (line.size()) {
+            SDL_Surface* s = TTF_RenderText_Solid(font, line.c_str(), fontColor);
+            SDL_Texture* t = SDL_CreateTextureFromSurface(renderer, s);
+
+            SDL_Rect r = {0, y, s->w, s->h};
+            
+            SDL_RenderCopy(renderer, t, nullptr, &r);
+            SDL_FreeSurface(s);
+            SDL_DestroyTexture(t);
+        }
 
         y += TTF_FontLineSkip(font);
-        std::cout << "Bloup Bloup 7" << std::endl;
     }
-    std::cout << "Text Rendered" << std::endl;
+}
+
+void renderCursor() {
+    int w,h;
+    TTF_SizeText(font, lines[cursorY].substr(0, cursorX).c_str(), &w, &h);
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    int lineSkip = TTF_FontLineSkip(font);
+    SDL_RenderDrawLine(renderer, w, cursorY * lineSkip, w, (cursorY + 1) * lineSkip);
 }
 
 void save(const std::string& filename) {
@@ -134,19 +136,35 @@ bool loop() {
             case SDL_QUIT:
                 looping = false;
                 break;
+            case SDL_TEXTINPUT:
+                insertChar(*event.text.text);
+                break;
             case SDL_KEYDOWN:
                 switch (event.key.keysym.sym) {
-                    case SDLK_UP:
+                    case SDLK_UP:               // CURSOR UP
                         moveCursorUp();
                         break;
-                    case SDLK_DOWN:
+                    case SDLK_DOWN:             // CURSOR DOWN
                         moveCursorDown();
                         break;
-                    case SDLK_BACKSPACE:
+                    case SDLK_BACKSPACE:        // SUPPR CHAR
                         deleteChar();
                         break;
+                    case SDLK_RETURN:           // NEW LINE
+                        lines.push_back("");
+                        moveCursorDown();
+                        break;
+                    case SDLK_c:                // COPY
+                        if (SDL_GetModState() & KMOD_CTRL) {
+                            SDL_SetClipboardText(lines[cursorY].c_str());
+                        }
+                        break;
+                    case SDLK_v:                // PASTE
+                        if (SDL_GetModState() & KMOD_CTRL) {
+                            lines[cursorY].append(SDL_GetClipboardText());
+                        }
+                        break;
                     default:
-                        insertChar(event.key.keysym.sym);
                         break;
                 }
                 break;
@@ -159,6 +177,7 @@ bool loop() {
     SDL_RenderClear(renderer);
 
     renderText();
+    renderCursor();
 
     SDL_RenderPresent(renderer);
     
