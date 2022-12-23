@@ -8,6 +8,7 @@
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 const int UI_HEIGHT = 50;
+const int TEXT_LEFT_SPAN = 24;
 
 std::vector<std::string> lines;
 
@@ -20,7 +21,6 @@ TTF_Font* font = nullptr;
 SDL_Color fontColor = {0, 0, 0, 255};
 SDL_Color indexColor = {51, 51, 51, 255};
 
-SDL_Rect indexRect = {2, 0, 0, 0};
 
 bool init() {
     bool success = true;
@@ -93,26 +93,28 @@ void renderText() {
         std::string index = std::to_string(i);
         SDL_Surface* iS = TTF_RenderText_Solid(font, index.c_str(), indexColor);
         SDL_Texture* iT = SDL_CreateTextureFromSurface(renderer, iS);
-        indexRect.y = y;
-        indexRect.w = iS->w;
-        indexRect.h = iS->h;
+        SDL_Rect iR = {2, y, iS->w, iS->h};
 
-        SDL_RenderCopy(renderer, iT, nullptr, &indexRect);
+        SDL_RenderCopy(renderer, iT, nullptr, &iR);
         SDL_FreeSurface(iS);
         SDL_DestroyTexture(iT);
 
-        // Render Line Text 
+        // Render Separator
+        SDL_SetRenderDrawColor(renderer, 51, 51, 51, 255);
+        SDL_RenderDrawLine(renderer, TEXT_LEFT_SPAN - 2, iR.y + 1, TEXT_LEFT_SPAN - 2, iR.y + iR.h - 1);
+
+        // Render Line Text
         if (lines[i].size()) {
             SDL_Surface* tS = TTF_RenderText_Solid(font, lines[i].c_str(), fontColor);
             SDL_Texture* tT = SDL_CreateTextureFromSurface(renderer, tS);
-            SDL_Rect tR = {indexRect.x + indexRect.w + 5, y, tS->w, tS->h};
+            SDL_Rect tR = {TEXT_LEFT_SPAN, y, tS->w, tS->h};
 
             SDL_RenderCopy(renderer, tT, nullptr, &tR);
             SDL_FreeSurface(tS);
             SDL_DestroyTexture(tT);
         }
 
-        y += TTF_FontLineSkip(font);
+        y += 22;
     }
 }
 
@@ -120,8 +122,7 @@ void renderCursor() {
     int w,h;
     TTF_SizeText(font, lines[cursorY].substr(0, cursorX).c_str(), &w, &h);
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-    int lineSkip = TTF_FontLineSkip(font);
-    SDL_RenderDrawLine(renderer, w + indexRect.w + 5, cursorY * lineSkip, w + indexRect.w + 5, (cursorY + 1) * lineSkip);
+    SDL_RenderDrawLine(renderer, w + TEXT_LEFT_SPAN, cursorY * 22 , w + TEXT_LEFT_SPAN, (cursorY + 1) * 22 - 4);
 }
 
 void save(const std::string& filename) {
