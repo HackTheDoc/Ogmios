@@ -60,33 +60,17 @@ bool init() {
     return success;
 }
 
-void insertChar(char c) {
-    lines[cursorY].insert(cursorX, 1, c);
-    cursorX++;
-}
-
-void deleteChar() {
-    if (cursorX == 0 && cursorY > 0) {
-        cursorY--;
-        lines.pop_back();
-    }
-    if (cursorX > 0) {
-        lines[cursorY].erase(cursorX - 1, 1);
-        cursorX--;
-    }
-}
-
 void moveCursorUp() {
     if (cursorY > 0) {
         cursorY--;
-        cursorX = std::min(cursorX, (int)lines[cursorY].size());
+        cursorX = std::min(cursorX, static_cast<int>(lines[cursorY].size()));
     }
 }
 
 void moveCursorDown() {
-    if (cursorY < (int)(lines.size() - 1) ) {
+    if (cursorY < static_cast<int>(lines.size() - 1) ) {
         cursorY++;
-        cursorX = std::min(cursorX, (int)lines[cursorY].size());
+        cursorX = std::min(cursorX, static_cast<int>(lines[cursorY].size()));
     }
 }
 
@@ -100,6 +84,18 @@ void moveCursorRight() {
     cursorX++;
 }
 
+void insertChar(char c) {
+    lines[cursorY].insert(cursorX, 1, c);
+    cursorX++;
+}
+
+void deleteChar() {
+    if (cursorX > 0) {
+        lines[cursorY].erase(cursorX - 1, 1);
+        cursorX--;
+    }
+}
+
 void insertNewLine() {
     std::string newLine = lines[cursorY].substr(cursorX);
     lines[cursorY] = lines[cursorY].substr(0, cursorX);
@@ -107,9 +103,45 @@ void insertNewLine() {
     moveCursorDown();
 }
 
+bool deleteLine() {
+    bool deleted = false;
+
+    if (cursorX == 0 && cursorY > 0) {
+        std::string oldLine = lines[cursorY];
+        lines.erase(lines.begin() + cursorY);
+        cursorY--;
+        cursorX = static_cast<int>(lines[cursorY].size());
+
+        if (oldLine.size()) {
+            lines[cursorY].append(oldLine);
+        }
+        deleted = true;
+    }
+
+    return deleted;
+}
+
+void save(const std::string& filename) {
+    std::ofstream out(filename);
+    for (const std::string& line : lines) {
+        out << line << std::endl;
+    }
+    out.close();
+}
+
+void load(const std::string& filename) {
+    lines.clear();
+    std::ifstream in(filename);
+    std::string line;
+    while (std::getline(in, line)) {
+        lines.push_back(line);
+    }
+    in.close();
+}
+
 void renderText() {
     int y = 0;
-    for (int i = 0; i < (int)lines.size(); i++) {
+    for (int i = 0; i < static_cast<int>(lines.size()); i++) {
         // Render Line Index
         std::string index = std::to_string(i);
         SDL_Surface* iS = TTF_RenderText_Solid(font, index.c_str(), indexColor);
@@ -146,22 +178,7 @@ void renderCursor() {
     SDL_RenderDrawLine(renderer, w + TEXT_LEFT_SPAN, cursorY * 22 , w + TEXT_LEFT_SPAN, (cursorY + 1) * 22 - 4);
 }
 
-void save(const std::string& filename) {
-    std::ofstream out(filename);
-    for (const std::string& line : lines) {
-        out << line << std::endl;
-    }
-    out.close();
-}
-
-void load(const std::string& filename) {
-    lines.clear();
-    std::ifstream in(filename);
-    std::string line;
-    while (std::getline(in, line)) {
-        lines.push_back(line);
-    }
-    in.close();
+void renderUI() {
 }
 
 void handleUIEvent(const SDL_Event& event) {
@@ -220,7 +237,9 @@ bool loop() {
                         moveCursorRight();
                         break;   
                     case SDLK_BACKSPACE:        // SUPPR CHAR
-                        deleteChar();
+                        if (!deleteLine()) {
+                            deleteChar();
+                        }
                         break;
                     case SDLK_RETURN:           // NEW LINE
                         insertNewLine();
@@ -252,7 +271,8 @@ bool loop() {
 
     renderText();
     renderCursor();
-
+    renderUI();
+    std::cout << cursorX << std::endl;
     SDL_RenderPresent(renderer);
     
     return looping;
