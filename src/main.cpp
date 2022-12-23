@@ -90,6 +90,16 @@ void moveCursorDown() {
     }
 }
 
+void moveCursorLeft() {
+    if (cursorX > 0) {
+        cursorX--;
+    }
+}
+
+void moveCursorRight() {
+    cursorX++;
+}
+
 void renderText() {
     int y = 0;
     for (int i = 0; i < (int)lines.size(); i++) {
@@ -161,12 +171,18 @@ bool loop() {
                 break;
             case SDL_KEYDOWN:
                 switch (event.key.keysym.sym) {
-                    case SDLK_UP:               // CURSOR UP
+                    case SDLK_UP:
                         moveCursorUp();
                         break;
-                    case SDLK_DOWN:             // CURSOR DOWN
+                    case SDLK_DOWN:
                         moveCursorDown();
                         break;
+                    case SDLK_LEFT:
+                        moveCursorLeft();
+                        break;
+                    case SDLK_RIGHT:
+                        moveCursorRight();
+                        break;   
                     case SDLK_BACKSPACE:        // SUPPR CHAR
                         deleteChar();
                         break;
@@ -184,6 +200,7 @@ bool loop() {
                             lines[cursorY].append(SDL_GetClipboardText());
                         }
                         break;
+                    
                     default:
                         break;
                 }
