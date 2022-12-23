@@ -101,6 +101,7 @@ void insertNewLine() {
     lines[cursorY] = lines[cursorY].substr(0, cursorX);
     lines.insert(lines.begin() + cursorY + 1, newLine);
     moveCursorDown();
+    cursorX = 0;
 }
 
 bool deleteLine() {
@@ -272,7 +273,7 @@ bool loop() {
     renderText();
     renderCursor();
     renderUI();
-    std::cout << cursorX << std::endl;
+    
     SDL_RenderPresent(renderer);
     
     return looping;
