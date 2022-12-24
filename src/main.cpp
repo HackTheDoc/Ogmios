@@ -5,6 +5,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
+#include "tinyfiledialogs.h"
+
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 const int UI_HEIGHT = 30;
@@ -133,27 +135,39 @@ void clearEditor() {
     cursorX = 0;
 }
 
-void save(const std::string& filename) {
-    std::ofstream out(filename);
-    for (const std::string& line : lines) {
-        out << line << std::endl;
-    }
-    out.close();
+void save() {
+    char* path = tinyfd_saveFileDialog("Save", "Output/unknown.txt", 0, NULL, NULL);
+    
+    if (path != NULL) {
+        std::ofstream out(path);
+        for (const std::string& line : lines) {
+            out << line << std::endl;
+        }
+        out.close();
 
-    clearEditor();
+        clearEditor();
+    } else {
+        tinyfd_messageBox("Ogmios", "Cannot save the file !", "ok", "error", 1);
+    }
 }
 
-void load(const std::string& filename) {
-    lines.clear();
-    std::ifstream in(filename);
-    std::string line;
-    while (std::getline(in, line)) {
-        lines.push_back(line);
-    }
-    in.close();
+void load() {
+    char* path = tinyfd_openFileDialog("Open", "/Output/", 0, NULL, NULL, 0);
 
-    cursorY = static_cast<int>(lines.size() - 1);
-    cursorX = static_cast<int>(lines[cursorY].size());
+    if (path != NULL) {
+        lines.clear();
+        std::ifstream in(path);
+        std::string line;
+        while (std::getline(in, line)) {
+            lines.push_back(line);
+        }
+        in.close();
+
+        cursorY = static_cast<int>(lines.size() - 1);
+        cursorX = static_cast<int>(lines[cursorY].size());
+    } else {
+        tinyfd_messageBox("Ogmios", "Cannot open the file !", "ok", "error", 1);
+    }
 }
 
 void renderText() {
@@ -243,11 +257,11 @@ void handleUIEvent(const SDL_Event& event) {
 
     // Save Button Event
     if (SDL_PointInRect(&mousePos, &saveButtonBox)) {
-        save("temp.txt");
+        save();
     }
     // Load Button Event
     else if (SDL_PointInRect(&mousePos, &loadButtonBox)) {
-        load("./temp.txt");
+        load();
     }
     //  Move mouse in editor
     else if (mousePos.y >= UI_HEIGHT && mousePos.y < WINDOW_HEIGHT && mousePos.x >= 0 && mousePos.x < WINDOW_WIDTH) {
