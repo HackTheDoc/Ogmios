@@ -267,7 +267,56 @@ void renderUI() {
     SDL_RenderDrawLine(renderer, 0, UI_HEIGHT, WINDOW_WIDTH, UI_HEIGHT);
 }
 
-void handleUIEvent(const SDL_Event& event) {
+void handleTextEditorEvents(SDL_Keycode key) {
+    switch (key) {
+        case SDLK_UP:
+            moveCursorUp();
+            break;
+        case SDLK_DOWN:
+            moveCursorDown();
+            break;
+        case SDLK_LEFT:
+            moveCursorLeft();
+            break;
+        case SDLK_RIGHT:
+            moveCursorRight();
+            break;
+        case SDLK_HOME:
+            jumpToLineStart();
+            break;
+        case SDLK_END:
+            jumpToLineEnd();
+            break;
+        case SDLK_PAGEUP:
+            jumpToFileStart();
+            break;
+        case SDLK_PAGEDOWN:
+            jumpToFileEnd();
+            break;   
+        case SDLK_BACKSPACE:        // SUPPR CHAR
+            if (!deleteLine()) {
+                deleteChar();
+            }
+            break;
+        case SDLK_RETURN:           // NEW LINE
+            insertNewLine();
+            break;
+        case SDLK_c:                // COPY
+            if (SDL_GetModState() & KMOD_CTRL) {
+                SDL_SetClipboardText(lines[cursorY].c_str());
+            }
+            break;
+        case SDLK_v:                // PASTE
+            if (SDL_GetModState() & KMOD_CTRL) {
+                lines[cursorY].append(SDL_GetClipboardText());
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+void handleUIEvents() {
     SDL_Point mousePos;
     SDL_GetMouseState(&mousePos.x, &mousePos.y);
 
@@ -324,55 +373,10 @@ bool loop() {
                 insertChar(*event.text.text);
                 break;
             case SDL_KEYDOWN:
-                switch (event.key.keysym.sym) {
-                    case SDLK_UP:
-                        moveCursorUp();
-                        break;
-                    case SDLK_DOWN:
-                        moveCursorDown();
-                        break;
-                    case SDLK_LEFT:
-                        moveCursorLeft();
-                        break;
-                    case SDLK_RIGHT:
-                        moveCursorRight();
-                        break;
-                    case SDLK_HOME:
-                        jumpToLineStart();
-                        break;
-                    case SDLK_END:
-                        jumpToLineEnd();
-                        break;
-                    case SDLK_PAGEUP:
-                        jumpToFileStart();
-                        break;
-                    case SDLK_PAGEDOWN:
-                        jumpToFileEnd();
-                        break;   
-                    case SDLK_BACKSPACE:        // SUPPR CHAR
-                        if (!deleteLine()) {
-                            deleteChar();
-                        }
-                        break;
-                    case SDLK_RETURN:           // NEW LINE
-                        insertNewLine();
-                        break;
-                    case SDLK_c:                // COPY
-                        if (SDL_GetModState() & KMOD_CTRL) {
-                            SDL_SetClipboardText(lines[cursorY].c_str());
-                        }
-                        break;
-                    case SDLK_v:                // PASTE
-                        if (SDL_GetModState() & KMOD_CTRL) {
-                            lines[cursorY].append(SDL_GetClipboardText());
-                        }
-                        break;
-                    default:
-                        break;
-                }
+                handleTextEditorEvents(event.key.keysym.sym);
                 break;
             case SDL_MOUSEBUTTONUP:
-                handleUIEvent(event);
+                handleUIEvents();
                 break;
             default:
                 break;
