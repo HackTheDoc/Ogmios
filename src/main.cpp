@@ -65,6 +65,24 @@ bool init() {
     return success;
 }
 
+void jumpToLineStart() {
+    cursorX = 0;
+}
+
+void jumpToLineEnd() {
+    cursorX = static_cast<int>(lines[cursorY].size());
+}
+
+void jumpToFileStart() {
+    cursorY = 0;
+    jumpToLineStart();
+}
+
+void jumpToFileEnd() {
+    cursorY = static_cast<int>(lines.size() - 1);
+    jumpToLineEnd();
+}
+
 void moveCursorUp() {
     if (cursorY > 0) {
         cursorY--;
@@ -131,8 +149,7 @@ void clearEditor() {
     lines.clear();
     lines.push_back("");
 
-    cursorY = 0;
-    cursorX = 0;
+    jumpToFileStart();
 }
 
 void save() {
@@ -163,8 +180,7 @@ void load() {
         }
         in.close();
 
-        cursorY = static_cast<int>(lines.size() - 1);
-        cursorX = static_cast<int>(lines[cursorY].size());
+        jumpToFileEnd();
     } else {
         tinyfd_messageBox("Ogmios", "Cannot open the file !", "ok", "error", 1);
     }
@@ -267,25 +283,31 @@ void handleUIEvent(const SDL_Event& event) {
     else if (mousePos.y >= UI_HEIGHT && mousePos.y < WINDOW_HEIGHT && mousePos.x >= 0 && mousePos.x < WINDOW_WIDTH) {
         int lineIndex = (mousePos.y - UI_HEIGHT) / 22;
         
-        int w,h;
-        TTF_SizeText(font, lines[lineIndex].c_str(), &w, &h);
+        if (lineIndex < static_cast<int>(lines.size())) {
+            int w,h;
+            TTF_SizeText(font, lines[lineIndex].c_str(), &w, &h);
 
-        int charPos = 0;
-        int width = 0;
-        for (char c : lines[lineIndex]) {
-            int charW, charH;
-            TTF_SizeText(font, &c, &charW, &charH);
-            
-            if (width + charW / 2 > mousePos.x) {
-                break;
+            int charPos = 0;
+            int width = 0;
+            for (char c : lines[lineIndex]) {
+                int charW, charH;
+                TTF_SizeText(font, &c, &charW, &charH);
+                
+                if (width + charW / 2 > mousePos.x) {
+                    break;
+                }
+
+                width += charW;
+                charPos++;
             }
 
-            width += charW;
-            charPos++;
+            cursorX = charPos;
+            cursorY = lineIndex;
         }
-
-        cursorX = charPos;
-        cursorY = lineIndex;
+        else {
+            jumpToFileEnd();
+        }
+        
     }
 }
 
@@ -314,6 +336,18 @@ bool loop() {
                         break;
                     case SDLK_RIGHT:
                         moveCursorRight();
+                        break;
+                    case SDLK_HOME:
+                        jumpToLineStart();
+                        break;
+                    case SDLK_END:
+                        jumpToLineEnd();
+                        break;
+                    case SDLK_PAGEUP:
+                        jumpToFileStart();
+                        break;
+                    case SDLK_PAGEDOWN:
+                        jumpToFileEnd();
                         break;   
                     case SDLK_BACKSPACE:        // SUPPR CHAR
                         if (!deleteLine()) {
@@ -376,4 +410,3 @@ int main(int argc, char *argv[]) {
     }
     return 0;
 }
-
