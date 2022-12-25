@@ -135,13 +135,15 @@ void moveCursorLeft() {
 }
 
 void moveCursorRight() {
-    cursorX++;
     if (
         cursorX++ > static_cast<int>(lines[cursorY].size()) && 
         cursorY < static_cast<int>(lines.size() - 1)
     ) {
         cursorY++;
         cursorX = 0;
+    }
+    else {
+        cursorX++;
     }
 }
 
@@ -190,8 +192,10 @@ void clearEditor() {
     jumpToFileStart();
 }
 
+
 void save() {
-    char* path = tinyfd_saveFileDialog("Save", "Output/unknown.txt", 0, NULL, NULL);
+    char const * filterPatterns[2] = { "*.txt", "*.text" };
+    char* path = tinyfd_saveFileDialog("Save", "./Output/unknow.txt", 2, filterPatterns, NULL);
     
     if (path != NULL) {
         std::ofstream out(path);
@@ -207,7 +211,8 @@ void save() {
 }
 
 void load() {
-    char* path = tinyfd_openFileDialog("Open", "/Output/", 0, NULL, NULL, 0);
+    char const * filterPatterns[2] = { "*.txt", "*.text" };
+    char* path = tinyfd_openFileDialog("Open", "Output/unknow.txt", 2, filterPatterns, NULL, 0);
 
     if (path != NULL) {
         lines.clear();
