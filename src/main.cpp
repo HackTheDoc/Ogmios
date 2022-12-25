@@ -7,24 +7,38 @@
 
 #include "tinyfiledialogs.h"
 
+// Const
 const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
-const int UI_HEIGHT = 30;
-const int TEXT_LEFT_SPAN = 24;
 
+const int TEXT_LEFT_SPAN = 24;
+const int LINE_HEIGHT = 22;
+
+const int SCROLL_BAR_WIDTH = 5;
+const int SCROLL_SPEED = 1;
+
+// Var
 std::vector<std::string> lines;
 
 int cursorX = 0;
 int cursorY = 0;
+int scrollPosition = 0;
 
 SDL_Window* window = nullptr;
 SDL_Renderer* renderer = nullptr;
 TTF_Font* font = nullptr;
-SDL_Color fontColor = {0, 0, 0, 255};
-SDL_Color indexColor = {51, 51, 51, 255};
 
-SDL_Rect saveButtonBox = {5, 5, 50, UI_HEIGHT-10};
-SDL_Rect loadButtonBox = {5 + saveButtonBox.x + saveButtonBox.w, 5, 50, UI_HEIGHT-10};
+SDL_Color fontColor = {65, 34, 52, 255};
+SDL_Color cursorColor = {204, 0, 153, 255};
+SDL_Color UIColor = {50, 26, 40, 255};
+SDL_Color textBackgroundColor = {234, 215, 215, 255};
+SDL_Color UIBackgroundColor = {194, 173, 207, 255};
+
+SDL_Rect UI = {0, 0, WINDOW_WIDTH, 30};
+SDL_Rect viewport = {0, UI.h, WINDOW_WIDTH, WINDOW_HEIGHT - UI.h};
+SDL_Rect scrollBar = {WINDOW_WIDTH - SCROLL_BAR_WIDTH, 0, SCROLL_BAR_WIDTH, 0};
+SDL_Rect saveButtonBox = {5, 5, 50, UI.h-10};
+SDL_Rect loadButtonBox = {5 + saveButtonBox.x + saveButtonBox.w, 5, 50, UI.h-10};
 
 
 bool init() {
@@ -94,6 +108,10 @@ void moveCursorDown() {
     if (cursorY < static_cast<int>(lines.size() - 1) ) {
         cursorY++;
         cursorX = std::min(cursorX, static_cast<int>(lines[cursorY].size()));
+        
+        if ( (cursorY + 1) * LINE_HEIGHT > WINDOW_HEIGHT - UI.h) {
+            scrollPosition += 1;
+        }
     }
 }
 
@@ -186,12 +204,26 @@ void load() {
     }
 }
 
+void scroll(int y) {
+    scrollPosition += y * SCROLL_SPEED;
+    scrollPosition = std::max(0, std::min(scrollPosition, static_cast<int>(lines.size() * LINE_HEIGHT - WINDOW_HEIGHT + UI.h)));
+}
+
+void updateScrollBar() {
+    scrollBar.h = (WINDOW_HEIGHT - UI.h) * (WINDOW_HEIGHT - UI.h) / static_cast<int>(lines.size() * LINE_HEIGHT);
+    scrollBar.y = scrollPosition * (WINDOW_HEIGHT - UI.h - scrollBar.h) / static_cast<int>(lines.size() * LINE_HEIGHT);
+
+    viewport.y = -scrollPosition * LINE_HEIGHT + UI.h;
+}
+
 void renderText() {
-    int y = UI_HEIGHT + 2;
+    SDL_RenderSetViewport(renderer, &viewport);
+
+    int y = 2;
     for (int i = 0; i < static_cast<int>(lines.size()); i++) {
         // Render Line Index
         std::string index = std::to_string(i);
-        SDL_Surface* iS = TTF_RenderText_Blended(font, index.c_str(), indexColor);
+        SDL_Surface* iS = TTF_RenderText_Blended(font, index.c_str(), UIColor);
         SDL_Texture* iT = SDL_CreateTextureFromSurface(renderer, iS);
         SDL_Rect iR = {2, y, iS->w, iS->h};
 
@@ -214,30 +246,46 @@ void renderText() {
             SDL_DestroyTexture(tT);
         }
 
-        y += 22;
+        y += LINE_HEIGHT;
     }
+
+    SDL_RenderSetViewport(renderer, nullptr);
 }
 
 void renderCursor() {
+    SDL_RenderSetViewport(renderer, &viewport);
+
     int w,h;
     TTF_SizeText(font, lines[cursorY].substr(0, cursorX).c_str(), &w, &h);
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+    SDL_SetRenderDrawColor(renderer, cursorColor.r, cursorColor.g, cursorColor.b, cursorColor.a);
     SDL_RenderDrawLine(renderer,
         w + TEXT_LEFT_SPAN,
-        cursorY * 22 + UI_HEIGHT + 4,
+        cursorY * LINE_HEIGHT + 4,
         w + TEXT_LEFT_SPAN,
-        (cursorY + 1) * 22 + UI_HEIGHT
+        (cursorY + 1) * LINE_HEIGHT
         );
+
+    SDL_RenderSetViewport(renderer, nullptr);
 }
 
 void renderUI() {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 127);
+    // Scroll Bar
+    SDL_RenderSetViewport(renderer, &viewport);
+    SDL_SetRenderDrawColor(renderer, UIColor.r, UIColor.g, UIColor.b, 127);
+    SDL_RenderFillRect(renderer, &scrollBar);
+    SDL_RenderSetViewport(renderer, nullptr);
+
+    // Background
+    SDL_SetRenderDrawColor(renderer, UIBackgroundColor.r, UIBackgroundColor.g, UIBackgroundColor.b, UIBackgroundColor.a);
+    SDL_RenderFillRect(renderer, &UI);
+
+    SDL_SetRenderDrawColor(renderer, UIColor.r, UIColor.g, UIColor.b, UIColor.a);
 
     // Save Button Box
     SDL_RenderDrawRect(renderer, &saveButtonBox);
 
     // Save Button Label
-    SDL_Surface* saveButtonSurface = TTF_RenderText_Blended(font, "Save", fontColor);
+    SDL_Surface* saveButtonSurface = TTF_RenderText_Blended(font, "Save", UIColor);
     SDL_Texture* saveButtonTexture = SDL_CreateTextureFromSurface(renderer, saveButtonSurface);
     SDL_Rect saveButton = {10, 4, saveButtonSurface->w, saveButtonSurface->h};
     SDL_RenderCopy(renderer, saveButtonTexture, nullptr, &saveButton);
@@ -248,7 +296,7 @@ void renderUI() {
     SDL_RenderDrawRect(renderer, &loadButtonBox);
 
     // Load Button Label
-    SDL_Surface* loadButtonSurface = TTF_RenderText_Blended(font, "Load", fontColor);
+    SDL_Surface* loadButtonSurface = TTF_RenderText_Blended(font, "Load", UIColor);
     SDL_Texture* loadButtonTexture = SDL_CreateTextureFromSurface(renderer, loadButtonSurface);
     SDL_Rect loadButton = {loadButtonBox.x + 5, 4, loadButtonSurface->w, loadButtonSurface->h};
     SDL_RenderCopy(renderer, loadButtonTexture, nullptr, &loadButton);
@@ -256,7 +304,7 @@ void renderUI() {
     SDL_DestroyTexture(loadButtonTexture);
 
     // Draw Editor name
-    SDL_Surface* nameSurface = TTF_RenderText_Blended(font, "Ogmios Editor", fontColor);
+    SDL_Surface* nameSurface = TTF_RenderText_Blended(font, "Ogmios Editor", UIColor);
     SDL_Texture* nameTexture = SDL_CreateTextureFromSurface(renderer, nameSurface);
     SDL_Rect nameRect = {WINDOW_WIDTH - nameSurface->w - 5, 4, nameSurface->w, nameSurface->h};
     SDL_RenderCopy(renderer, nameTexture, nullptr, &nameRect);
@@ -264,7 +312,7 @@ void renderUI() {
     SDL_DestroyTexture(nameTexture);
 
     // Draw UI Border
-    SDL_RenderDrawLine(renderer, 0, UI_HEIGHT, WINDOW_WIDTH, UI_HEIGHT);
+    SDL_RenderDrawLine(renderer, 0, UI.h, WINDOW_WIDTH, UI.h);
 }
 
 void handleTextEditorEvents(SDL_Keycode key) {
@@ -329,8 +377,8 @@ void handleUIEvents() {
         load();
     }
     //  Move mouse in editor
-    else if (mousePos.y >= UI_HEIGHT && mousePos.y < WINDOW_HEIGHT && mousePos.x >= 0 && mousePos.x < WINDOW_WIDTH) {
-        int lineIndex = (mousePos.y - UI_HEIGHT) / 22;
+    else if (mousePos.y >= UI.h && mousePos.y < WINDOW_HEIGHT && mousePos.x >= 0 && mousePos.x < WINDOW_WIDTH) {
+        int lineIndex = (mousePos.y - UI.h) / LINE_HEIGHT;
         
         if (lineIndex < static_cast<int>(lines.size())) {
             int w,h;
@@ -378,13 +426,18 @@ bool loop() {
             case SDL_MOUSEBUTTONUP:
                 handleUIEvents();
                 break;
+            case SDL_MOUSEWHEEL:
+                scroll(event.wheel.y);
+                break;
             default:
                 break;
         }
     }
 
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_SetRenderDrawColor(renderer, textBackgroundColor.r, textBackgroundColor.g, textBackgroundColor.b, textBackgroundColor.a);
     SDL_RenderClear(renderer);
+
+    updateScrollBar();
 
     renderText();
     renderCursor();
