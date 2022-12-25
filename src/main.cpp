@@ -97,10 +97,19 @@ void jumpToFileEnd() {
     jumpToLineEnd();
 }
 
+void scroll(int y) {
+    scrollPosition = y * SCROLL_SPEED;
+    scrollPosition = std::max(0, std::min(scrollPosition, static_cast<int>( (lines.size()-1) * LINE_HEIGHT - WINDOW_HEIGHT + UI.h)));
+}
+
 void moveCursorUp() {
     if (cursorY > 0) {
         cursorY--;
         cursorX = std::min(cursorX, static_cast<int>(lines[cursorY].size()));
+
+        if ( cursorY  < scrollPosition) {
+            scroll(-1);
+        }
     }
 }
 
@@ -109,8 +118,8 @@ void moveCursorDown() {
         cursorY++;
         cursorX = std::min(cursorX, static_cast<int>(lines[cursorY].size()));
         
-        if ( (cursorY + 1) * LINE_HEIGHT > WINDOW_HEIGHT - UI.h) {
-            scrollPosition += 1;
+        if ( (cursorY+1) * LINE_HEIGHT > WINDOW_HEIGHT - UI.h) {
+            scroll(1);
         }
     }
 }
@@ -151,7 +160,7 @@ bool deleteLine() {
     if (cursorX == 0 && cursorY > 0) {
         std::string oldLine = lines[cursorY];
         lines.erase(lines.begin() + cursorY);
-        cursorY--;
+        moveCursorUp();
         cursorX = static_cast<int>(lines[cursorY].size());
 
         if (oldLine.size()) {
@@ -202,11 +211,6 @@ void load() {
     } else {
         tinyfd_messageBox("Ogmios", "Cannot open the file !", "ok", "error", 1);
     }
-}
-
-void scroll(int y) {
-    scrollPosition += y * SCROLL_SPEED;
-    scrollPosition = std::max(0, std::min(scrollPosition, static_cast<int>(lines.size() * LINE_HEIGHT - WINDOW_HEIGHT + UI.h)));
 }
 
 void updateScrollBar() {
@@ -427,7 +431,7 @@ bool loop() {
                 handleUIEvents();
                 break;
             case SDL_MOUSEWHEEL:
-                scroll(event.wheel.y);
+                scroll(-event.wheel.y);
                 break;
             default:
                 break;
@@ -438,6 +442,8 @@ bool loop() {
     SDL_RenderClear(renderer);
 
     updateScrollBar();
+    
+    std::cout << cursorY << " " << scrollPosition << std::endl;
 
     renderText();
     renderCursor();
