@@ -125,13 +125,24 @@ void moveCursorDown() {
 }
 
 void moveCursorLeft() {
-    if (cursorX > 0) {
+    if (cursorX == 0) {
+        moveCursorUp();
+        cursorX = static_cast<int>(lines[cursorY].size());
+    }
+    else if (cursorX > 0) {
         cursorX--;
     }
 }
 
 void moveCursorRight() {
     cursorX++;
+    if (
+        cursorX++ > static_cast<int>(lines[cursorY].size()) && 
+        cursorY < static_cast<int>(lines.size() - 1)
+    ) {
+        cursorY++;
+        cursorX = 0;
+    }
 }
 
 void insertChar(char c) {
