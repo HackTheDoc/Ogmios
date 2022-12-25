@@ -220,6 +220,25 @@ void updateScrollBar() {
     viewport.y = -scrollPosition * LINE_HEIGHT + UI.h;
 }
 
+std::vector<std::string> splitLine(const std::string& line, TTF_Font* font, int viewportWidth) {
+    std::vector<std::string> lines;
+    std::string currentLine;
+    int currentLineWidth = 0;
+    for (char c : line) {
+        currentLine += c;
+
+        TTF_SizeText(font, currentLine.c_str(), &currentLineWidth, nullptr);
+
+        if (currentLineWidth > viewportWidth) {
+            lines.push_back(currentLine.substr(0, currentLine.length() - 1));
+            currentLine = c;
+        }
+    }
+    lines.push_back(currentLine);
+    
+    return lines;
+}
+
 void renderText() {
     SDL_RenderSetViewport(renderer, &viewport);
 
@@ -241,15 +260,18 @@ void renderText() {
 
         // Render Line Text
         if (lines[i].size()) {
-            SDL_Surface* tS = TTF_RenderText_Blended(font, lines[i].c_str(), fontColor);
-            SDL_Texture* tT = SDL_CreateTextureFromSurface(renderer, tS);
-            SDL_Rect tR = {TEXT_LEFT_SPAN, y, tS->w, tS->h};
+            auto splitLines = splitLine(lines[i], font, WINDOW_WIDTH - TEXT_LEFT_SPAN);
+            for (const auto& line : splitLines) {
+                SDL_Surface* tS = TTF_RenderText_Blended(font, line.c_str(), fontColor);
+                SDL_Texture* tT = SDL_CreateTextureFromSurface(renderer, tS);
+                SDL_Rect tR = {TEXT_LEFT_SPAN, y, tS->w, tS->h};
 
-            SDL_RenderCopy(renderer, tT, nullptr, &tR);
-            SDL_FreeSurface(tS);
-            SDL_DestroyTexture(tT);
+                SDL_RenderCopy(renderer, tT, nullptr, &tR);
+                SDL_FreeSurface(tS);
+                SDL_DestroyTexture(tT);
+                y += LINE_HEIGHT;
+            }
         }
-
         y += LINE_HEIGHT;
     }
 
