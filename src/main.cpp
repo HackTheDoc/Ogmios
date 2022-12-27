@@ -4,6 +4,7 @@
 #include <string>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_image.h>
 
 #include "tinyfiledialogs.h"
 
@@ -20,7 +21,7 @@ const int SCROLL_SPEED = 1;
 const int BUTTON_SPAN = 5;
 const int BUTTON_WIDTH = 50;
 
-enum themes { DAY, NIGHT };
+enum themes { DAY, NIGHT, numberOfThemes };
 
 // Var
 std::vector<std::string> lines;
@@ -41,11 +42,13 @@ SDL_Window* window = nullptr;
 SDL_Renderer* renderer = nullptr;
 TTF_Font* font = nullptr;
 
-SDL_Color fontColor = {65, 34, 52, 255};
-SDL_Color cursorColor = {204, 0, 153, 255};
-SDL_Color UIColor = {50, 26, 40, 255};
-SDL_Color textBackgroundColor = {234, 215, 215, 255};
-SDL_Color UIBackgroundColor = {194, 173, 207, 255};
+SDL_Color fontColor[numberOfThemes];
+SDL_Color cursorColor[numberOfThemes];
+SDL_Color UIColor[numberOfThemes];
+SDL_Color textBackgroundColor[numberOfThemes];
+SDL_Color UIBackgroundColor[numberOfThemes];
+
+SDL_Texture* themesIcons[numberOfThemes];
 
 SDL_Rect UI = {0, 0, WINDOW_WIDTH, 30};
 SDL_Rect viewport = {0, UI.h, WINDOW_WIDTH, WINDOW_HEIGHT - UI.h};
@@ -57,7 +60,15 @@ SDL_Rect loadButtonBox = {BUTTON_SPAN + saveButtonBox.x + saveButtonBox.w, BUTTO
 SDL_Rect minusButtonBox = {loadButtonBox.x + loadButtonBox.w + BUTTON_SPAN, BUTTON_SPAN, UI.h - 10, UI.h - 10};
 SDL_Rect sizeButtonBox = {minusButtonBox.x + minusButtonBox.w, BUTTON_SPAN, 40, UI.h - 10};
 SDL_Rect plusButtonBox = {sizeButtonBox.x + sizeButtonBox.w, BUTTON_SPAN, UI.h - 10, UI.h - 10};
+SDL_Rect themeButtonBox = {WINDOW_WIDTH - UI.h + 5, BUTTON_SPAN, UI.h - 10, UI.h - 10};
+SDL_Rect iconRect = {0, 0, 15, 15};
 
+SDL_Texture* LoadTexture(const char* fileName) {
+    SDL_Surface* tmpSurface = IMG_Load(fileName);
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, tmpSurface);
+    SDL_FreeSurface(tmpSurface);
+    return texture;
+}
 
 bool init() {
     bool success = true;
@@ -96,7 +107,26 @@ bool init() {
     lineHeight = DEFAULT_LINE_HEIGHT;
     editorLeftMargin = DEFAULT_EDITOR_LEFT_MARGIN;
 
+    #pragma region INIT THEMES
+    //  DAY
+    fontColor[DAY] = {65, 34, 52, 255};
+    cursorColor[DAY] = {204, 0, 153, 255};
+    UIColor[DAY] = {50, 26, 40, 255};
+    textBackgroundColor[DAY] = {234, 215, 215, 255};
+    UIBackgroundColor[DAY] = {194, 173, 207, 255};
+    themesIcons[DAY] = LoadTexture("./icons/sun.png");
+
+    //  NIGHT
+    fontColor[NIGHT] = {255, 255, 255, 255};
+    cursorColor[NIGHT] = {255, 255, 255, 255};
+    UIColor[NIGHT] = {255, 255, 255, 255};
+    textBackgroundColor[NIGHT] = {0, 0, 0, 255};
+    UIBackgroundColor[NIGHT] = {128, 128, 128, 255};
+    themesIcons[NIGHT] = LoadTexture("./icons/moon.png");
+
     currentTheme = DAY;
+
+    #pragma endregion
 
     SDL_StartTextInput();
 
@@ -259,6 +289,10 @@ void updateScrollBar() {
     viewport.y = -scrollPosition * lineHeight + UI.h;
 }
 
+void updateTheme() {
+    currentTheme = !currentTheme;
+}
+
 void updateFontSize(TTF_Font* f, int s) {
     currentFontSize += s;
 
@@ -289,6 +323,13 @@ std::vector<std::string> splitLine(const std::string& line, TTF_Font* font, int 
     return lines;
 }
 
+void drawMoon(int x, int y) {
+    // TODO
+}
+
+void drawSun(int x, int y) {
+    // TODO
+}
 
 void renderText() {
     SDL_RenderSetViewport(renderer, &viewport);
@@ -297,7 +338,7 @@ void renderText() {
     for (int i = 0; i < static_cast<int>(lines.size()); i++) {
         // Render Line Index
         std::string index = std::to_string(i);
-        SDL_Surface* iS = TTF_RenderText_Blended(font, index.c_str(), UIColor);
+        SDL_Surface* iS = TTF_RenderText_Blended(font, index.c_str(), UIColor[currentTheme]);
         SDL_Texture* iT = SDL_CreateTextureFromSurface(renderer, iS);
         SDL_Rect iR = {2, y, iS->w, iS->h};
 
@@ -311,7 +352,7 @@ void renderText() {
 
         // Render Line Text
         if (lines[i].size()) {
-            SDL_Surface* tS = TTF_RenderText_Blended(font, lines[i].c_str(), fontColor);
+            SDL_Surface* tS = TTF_RenderText_Blended(font, lines[i].c_str(), fontColor[currentTheme]);
             SDL_Texture* tT = SDL_CreateTextureFromSurface(renderer, tS);
             SDL_Rect tR = {editorLeftMargin, y, tS->w, tS->h};
 
@@ -330,7 +371,7 @@ void renderCursor() {
 
     int w,h;
     TTF_SizeText(font, lines[cursorY].substr(0, cursorX).c_str(), &w, &h);
-    SDL_SetRenderDrawColor(renderer, cursorColor.r, cursorColor.g, cursorColor.b, cursorColor.a);
+    SDL_SetRenderDrawColor(renderer, cursorColor[currentTheme].r, cursorColor[currentTheme].g, cursorColor[currentTheme].b, cursorColor[currentTheme].a);
     SDL_RenderDrawLine(renderer,
         w + editorLeftMargin,
         (cursorY * lineHeight + 4),
@@ -346,22 +387,22 @@ void renderUI() {
 
     // Scroll Bar
     SDL_RenderSetViewport(renderer, &viewport);
-    SDL_SetRenderDrawColor(renderer, UIColor.r, UIColor.g, UIColor.b, 127);
+    SDL_SetRenderDrawColor(renderer, UIColor[currentTheme].r, UIColor[currentTheme].g, UIColor[currentTheme].b, UIColor[currentTheme].a / 2);
     SDL_RenderFillRect(renderer, &scrollBar);
     SDL_RenderSetViewport(renderer, nullptr);
 
     // Background
-    SDL_SetRenderDrawColor(renderer, UIBackgroundColor.r, UIBackgroundColor.g, UIBackgroundColor.b, UIBackgroundColor.a);
+    SDL_SetRenderDrawColor(renderer, UIBackgroundColor[currentTheme].r, UIBackgroundColor[currentTheme].g, UIBackgroundColor[currentTheme].b, UIBackgroundColor[currentTheme].a);
     SDL_RenderFillRect(renderer, &UI);
 
-    SDL_SetRenderDrawColor(renderer, UIColor.r, UIColor.g, UIColor.b, UIColor.a);
+    SDL_SetRenderDrawColor(renderer, UIColor[currentTheme].r, UIColor[currentTheme].g, UIColor[currentTheme].b, UIColor[currentTheme].a);
 
     #pragma region SAVE BUTTON
     //  Box
     SDL_RenderDrawRect(renderer, &saveButtonBox);
 
     // Label
-    SDL_Surface* saveButtonSurface = TTF_RenderText_Blended(font, "Save", UIColor);
+    SDL_Surface* saveButtonSurface = TTF_RenderText_Blended(font, "Save", UIColor[currentTheme]);
     SDL_Texture* saveButtonTexture = SDL_CreateTextureFromSurface(renderer, saveButtonSurface);
     SDL_Rect saveButton = {10, 4, saveButtonSurface->w, saveButtonSurface->h};
     SDL_RenderCopy(renderer, saveButtonTexture, nullptr, &saveButton);
@@ -374,7 +415,7 @@ void renderUI() {
     SDL_RenderDrawRect(renderer, &loadButtonBox);
 
     // Label
-    SDL_Surface* loadButtonSurface = TTF_RenderText_Blended(font, "Load", UIColor);
+    SDL_Surface* loadButtonSurface = TTF_RenderText_Blended(font, "Load", UIColor[currentTheme]);
     SDL_Texture* loadButtonTexture = SDL_CreateTextureFromSurface(renderer, loadButtonSurface);
     SDL_Rect loadButton = {loadButtonBox.x + 5, 4, loadButtonSurface->w, loadButtonSurface->h};
     SDL_RenderCopy(renderer, loadButtonTexture, nullptr, &loadButton);
@@ -386,7 +427,7 @@ void renderUI() {
     // Minus Button
     SDL_RenderDrawRect(renderer, &minusButtonBox);
 
-    SDL_Surface* minusButtonSurface = TTF_RenderText_Blended(font, "-", UIColor);
+    SDL_Surface* minusButtonSurface = TTF_RenderText_Blended(font, "-", UIColor[currentTheme]);
     SDL_Texture* minusButtonTexture = SDL_CreateTextureFromSurface(renderer, minusButtonSurface);
     SDL_Rect minusButton = {minusButtonBox.x + 5, 4, minusButtonSurface->w, minusButtonSurface->h};
     SDL_RenderCopy(renderer, minusButtonTexture, nullptr, &minusButton);
@@ -396,7 +437,7 @@ void renderUI() {
     // Size Button
     SDL_RenderDrawRect(renderer, &sizeButtonBox);
 
-    SDL_Surface* sizeButtonSurface = TTF_RenderText_Blended(font, "Size", UIColor);
+    SDL_Surface* sizeButtonSurface = TTF_RenderText_Blended(font, "Size", UIColor[currentTheme]);
     SDL_Texture* sizeButtonTexture = SDL_CreateTextureFromSurface(renderer, sizeButtonSurface);
     SDL_Rect sizeButton = {sizeButtonBox.x + 5, 4, sizeButtonSurface->w, sizeButtonSurface->h};
     SDL_RenderCopy(renderer, sizeButtonTexture, nullptr, &sizeButton);
@@ -406,7 +447,7 @@ void renderUI() {
     // Plus Button
     SDL_RenderDrawRect(renderer, &plusButtonBox);
 
-    SDL_Surface* plusButtonSurface = TTF_RenderText_Blended(font, "+", UIColor);
+    SDL_Surface* plusButtonSurface = TTF_RenderText_Blended(font, "+", UIColor[currentTheme]);
     SDL_Texture* plusButtonTexture = SDL_CreateTextureFromSurface(renderer, plusButtonSurface);
     SDL_Rect plusButton = {plusButtonBox.x + 5, 4, plusButtonSurface->w, plusButtonSurface->h};
     SDL_RenderCopy(renderer, plusButtonTexture, nullptr, &plusButton);
@@ -415,10 +456,19 @@ void renderUI() {
 
     #pragma endregion
 
+    #pragma region THEME BUTTON
+    // Logo
+    SDL_RenderCopy(renderer, themesIcons[currentTheme], &iconRect, &themeButtonBox);
+
+    //  Box
+    SDL_RenderDrawRect(renderer, &themeButtonBox);
+
+    #pragma endregion
+
     // Draw Editor name
-    SDL_Surface* nameSurface = TTF_RenderText_Blended(font, "Ogmios Editor", UIColor);
+    SDL_Surface* nameSurface = TTF_RenderText_Blended(font, "Ogmios Editor", UIColor[currentTheme]);
     SDL_Texture* nameTexture = SDL_CreateTextureFromSurface(renderer, nameSurface);
-    SDL_Rect nameRect = {WINDOW_WIDTH - nameSurface->w - 5, 4, nameSurface->w, nameSurface->h};
+    SDL_Rect nameRect = {themeButtonBox.x - nameSurface->w - 5, 4, nameSurface->w, nameSurface->h};
     SDL_RenderCopy(renderer, nameTexture, nullptr, &nameRect);
     SDL_FreeSurface(nameSurface);
     SDL_DestroyTexture(nameTexture);
@@ -503,6 +553,10 @@ void handleUIEvents() {
     else if (SDL_PointInRect(&mousePos, &plusButtonBox)) {
         updateFontSize(font, 2);
     }
+    // Theme Button Event
+    else if (SDL_PointInRect(&mousePos, &themeButtonBox)) {
+        updateTheme();
+    }
     //  Move mouse in editor
     else if (mousePos.y >= UI.h && mousePos.y < WINDOW_HEIGHT && mousePos.x >= 0 && mousePos.x < WINDOW_WIDTH) {
         int lineIndex = (mousePos.y - UI.h) / lineHeight;
@@ -561,7 +615,7 @@ bool loop() {
         }
     }
 
-    SDL_SetRenderDrawColor(renderer, textBackgroundColor.r, textBackgroundColor.g, textBackgroundColor.b, textBackgroundColor.a);
+    SDL_SetRenderDrawColor(renderer, textBackgroundColor[currentTheme].r, textBackgroundColor[currentTheme].g, textBackgroundColor[currentTheme].b, textBackgroundColor[currentTheme].a);
     SDL_RenderClear(renderer);
 
     updateScrollBar();
@@ -577,6 +631,11 @@ bool loop() {
 
 void kill() {
     SDL_StopTextInput();
+
+    for (int i = 0; i < numberOfThemes; i++) {
+        SDL_DestroyTexture(themesIcons[i]);
+    }
+
     SDL_DestroyWindow(window);
     window = nullptr;
     renderer = nullptr;
