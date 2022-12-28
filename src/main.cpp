@@ -61,7 +61,7 @@ SDL_Rect minusButtonBox = {loadButtonBox.x + loadButtonBox.w + BUTTON_SPAN, BUTT
 SDL_Rect sizeButtonBox = {minusButtonBox.x + minusButtonBox.w, BUTTON_SPAN, 40, UI.h - 10};
 SDL_Rect plusButtonBox = {sizeButtonBox.x + sizeButtonBox.w, BUTTON_SPAN, UI.h - 10, UI.h - 10};
 SDL_Rect themeButtonBox = {WINDOW_WIDTH - UI.h + 5, BUTTON_SPAN, UI.h - 10, UI.h - 10};
-SDL_Rect iconRect = {0, 0, 15, 15};
+
 
 SDL_Texture* LoadTexture(const char* fileName) {
     SDL_Surface* tmpSurface = IMG_Load(fileName);
@@ -153,8 +153,8 @@ void jumpToFileEnd() {
 }
 
 void scroll(int y) {
-    scrollPosition = y * SCROLL_SPEED;
-    scrollPosition = std::max(0, std::min(scrollPosition, static_cast<int>( (lines.size()-1) * lineHeight - WINDOW_HEIGHT + UI.h)));
+    scrollPosition += y;
+    scrollPosition = std::max(0, std::min(scrollPosition, static_cast<int>(lines.size()-1)));
 }
 
 void moveCursorUp() {
@@ -217,6 +217,8 @@ void insertNewLine() {
     lines.insert(lines.begin() + cursorY + 1, newLine);
     moveCursorDown();
     cursorX = 0;
+
+    viewport.h += lineHeight;
 }
 
 bool deleteLine() {
@@ -231,6 +233,9 @@ bool deleteLine() {
         if (oldLine.size()) {
             lines[cursorY].append(oldLine);
         }
+
+        viewport.h -= lineHeight;
+
         deleted = true;
     }
 
@@ -458,7 +463,7 @@ void renderUI() {
 
     #pragma region THEME BUTTON
     // Logo
-    SDL_RenderCopy(renderer, themesIcons[currentTheme], &iconRect, &themeButtonBox);
+    SDL_RenderCopy(renderer, themesIcons[currentTheme], nullptr, &themeButtonBox);
 
     //  Box
     SDL_RenderDrawRect(renderer, &themeButtonBox);
@@ -590,6 +595,7 @@ void handleUIEvents() {
 }
 
 bool loop() {
+    std::cout << scrollPosition << std::endl;
     bool looping = true;
 
     SDL_Event event;
