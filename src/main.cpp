@@ -336,6 +336,7 @@ void drawSun(int x, int y) {
     // TODO
 }
 
+
 void renderText() {
     SDL_RenderSetViewport(renderer, &viewport);
 
@@ -357,15 +358,21 @@ void renderText() {
 
         // Render Line Text
         if (lines[i].size()) {
-            SDL_Surface* tS = TTF_RenderText_Blended(font, lines[i].c_str(), fontColor[currentTheme]);
-            SDL_Texture* tT = SDL_CreateTextureFromSurface(renderer, tS);
-            SDL_Rect tR = {editorLeftMargin, y, tS->w, tS->h};
+            auto tempLines = splitLine(lines[i], font, WINDOW_WIDTH - editorLeftMargin);
+            for (int j = 0; j < static_cast<int>(tempLines.size()); j++) {
+                SDL_Surface* tS = TTF_RenderText_Blended(font, tempLines[j].c_str(), fontColor[currentTheme]);
+                SDL_Texture* tT = SDL_CreateTextureFromSurface(renderer, tS);
+                SDL_Rect tR = {editorLeftMargin, y, tS->w, tS->h};
 
-            SDL_RenderCopy(renderer, tT, nullptr, &tR);
-            SDL_FreeSurface(tS);
-            SDL_DestroyTexture(tT);
+                SDL_RenderCopy(renderer, tT, nullptr, &tR);
+                SDL_FreeSurface(tS);
+                SDL_DestroyTexture(tT);
+                
+                y += lineHeight;
+            }
+        } else {
+            y += lineHeight;
         }
-        y += lineHeight;
     }
 
     SDL_RenderSetViewport(renderer, nullptr);
@@ -374,14 +381,32 @@ void renderText() {
 void renderCursor() {
     SDL_RenderSetViewport(renderer, &viewport);
 
+    int x = cursorX;
+    int y = 0;
+    auto sublines = splitLine(lines[cursorY], font, WINDOW_WIDTH - editorLeftMargin);
+    if (static_cast<int>(sublines.size()) > 1) {
+        for (int i = 0; i < static_cast<int>(sublines.size() - 1); i++) {
+            x -= static_cast<int>(sublines[i].size());
+            y++;
+        }
+        x = std::max(x, 0);
+    }
+
     int w,h;
-    TTF_SizeText(font, lines[cursorY].substr(0, cursorX).c_str(), &w, &h);
+    TTF_SizeText(font, sublines[y].substr(0, x).c_str(), &w, &h);
+
+    for (int i = 0; i < cursorY; i++) {
+        auto temp = splitLine(lines[i], font, WINDOW_WIDTH - editorLeftMargin); 
+        y += static_cast<int>(temp.size());
+    }
+    std::cout << y << std::endl;
+
     SDL_SetRenderDrawColor(renderer, cursorColor[currentTheme].r, cursorColor[currentTheme].g, cursorColor[currentTheme].b, cursorColor[currentTheme].a);
     SDL_RenderDrawLine(renderer,
         w + editorLeftMargin,
-        (cursorY * lineHeight + 4),
+        (y * lineHeight + 4),
         w + editorLeftMargin,
-        (cursorY + 1) * lineHeight
+        (y + 1) * lineHeight
         );
 
     SDL_RenderSetViewport(renderer, nullptr);
@@ -595,7 +620,6 @@ void handleUIEvents() {
 }
 
 bool loop() {
-    std::cout << scrollPosition << std::endl;
     bool looping = true;
 
     SDL_Event event;
