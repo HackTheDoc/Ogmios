@@ -28,6 +28,8 @@ std::vector<std::string> lines;
 
 int cursorX = 0;
 int cursorY = 0;
+int rCursorX;
+int rCursorY;
 int scrollPosition = 0;
 
 const int DEFAULT_FONT_SIZE = 16;
@@ -70,6 +72,26 @@ SDL_Texture* LoadTexture(const char* fileName) {
     return texture;
 }
 
+std::vector<std::string> splitLine(const std::string& line, TTF_Font* font, int viewportWidth) {
+    std::vector<std::string> lines;
+    std::string currentLine;
+    int currentLineWidth = 0;
+    for (char c : line) {
+        currentLine += c;
+
+        TTF_SizeText(font, currentLine.c_str(), &currentLineWidth, nullptr);
+
+        if (currentLineWidth > viewportWidth) {
+            lines.push_back(currentLine.substr(0, currentLine.length() - 1));
+            currentLine = c;
+        }
+    }
+    lines.push_back(currentLine);
+    
+    return lines;
+}
+
+
 bool init() {
     bool success = true;
     if (SDL_Init(SDL_INIT_EVERYTHING) == 0) {
@@ -107,6 +129,9 @@ bool init() {
     lineHeight = DEFAULT_LINE_HEIGHT;
     editorLeftMargin = DEFAULT_EDITOR_LEFT_MARGIN;
 
+    rCursorX = editorLeftMargin;
+    rCursorY = 0;
+
     #pragma region INIT THEMES
     //  DAY
     fontColor[DAY] = {65, 34, 52, 255};
@@ -134,28 +159,44 @@ bool init() {
 }
 
 
+void updateRenderCursorX() {
+    TTF_SizeText(font, lines[cursorY].substr(0, cursorX).c_str(), &rCursorX, nullptr);
+    rCursorX += editorLeftMargin;
+}
+
+void updateRenderCursorY() {
+    rCursorY = cursorY * lineHeight;
+}
+
+
 void jumpToLineStart() {
     cursorX = 0;
+    updateRenderCursorX();
 }
 
 void jumpToLineEnd() {
     cursorX = static_cast<int>(lines[cursorY].size());
+    updateRenderCursorX();
 }
 
 void jumpToFileStart() {
     cursorY = 0;
     jumpToLineStart();
+    updateRenderCursorY();
 }
 
 void jumpToFileEnd() {
     cursorY = static_cast<int>(lines.size() - 1);
     jumpToLineEnd();
+    updateRenderCursorY();
 }
+
 
 void scroll(int y) {
     scrollPosition += y;
     scrollPosition = std::max(0, std::min(scrollPosition, static_cast<int>(lines.size()-1)));
 }
+
 
 void moveCursorUp() {
     if (cursorY > 0) {
@@ -165,6 +206,9 @@ void moveCursorUp() {
         if ( cursorY  < scrollPosition) {
             scroll(-1);
         }
+
+        updateRenderCursorY();
+        updateRenderCursorX();
     }
 }
 
@@ -176,6 +220,11 @@ void moveCursorDown() {
         if ( (cursorY+1) * lineHeight > WINDOW_HEIGHT - UI.h) {
             scroll(1);
         }
+        
+        std::cout << cursorY-1 << " --> " << cursorY << std::endl;
+
+        updateRenderCursorY();
+        updateRenderCursorX();
     }
 }
 
@@ -187,6 +236,7 @@ void moveCursorLeft() {
     else if (cursorX > 0) {
         cursorX--;
     }
+    updateRenderCursorX();
 }
 
 void moveCursorRight() {
@@ -197,17 +247,21 @@ void moveCursorRight() {
     else {
         cursorX++;
     }
+    updateRenderCursorX();
 }
+
 
 void insertChar(char c) {
     lines[cursorY].insert(cursorX, 1, c);
     cursorX++;
+    updateRenderCursorX();
 }
 
 void deleteChar() {
     if (cursorX > 0) {
         lines[cursorY].erase(cursorX - 1, 1);
         cursorX--;
+        updateRenderCursorX();
     }
 }
 
@@ -217,6 +271,8 @@ void insertNewLine() {
     lines.insert(lines.begin() + cursorY + 1, newLine);
     moveCursorDown();
     cursorX = 0;
+    
+    updateRenderCursorX();
 
     viewport.h += lineHeight;
 }
@@ -229,6 +285,7 @@ bool deleteLine() {
         lines.erase(lines.begin() + cursorY);
         moveCursorUp();
         cursorX = static_cast<int>(lines[cursorY].size());
+        updateRenderCursorX();
 
         if (oldLine.size()) {
             lines[cursorY].append(oldLine);
@@ -309,33 +366,6 @@ void updateFontSize(TTF_Font* f, int s) {
     }
 }
 
-std::vector<std::string> splitLine(const std::string& line, TTF_Font* font, int viewportWidth) {
-    std::vector<std::string> lines;
-    std::string currentLine;
-    int currentLineWidth = 0;
-    for (char c : line) {
-        currentLine += c;
-
-        TTF_SizeText(font, currentLine.c_str(), &currentLineWidth, nullptr);
-
-        if (currentLineWidth > viewportWidth) {
-            lines.push_back(currentLine.substr(0, currentLine.length() - 1));
-            currentLine = c;
-        }
-    }
-    lines.push_back(currentLine);
-    
-    return lines;
-}
-
-void drawMoon(int x, int y) {
-    // TODO
-}
-
-void drawSun(int x, int y) {
-    // TODO
-}
-
 
 void renderText() {
     SDL_RenderSetViewport(renderer, &viewport);
@@ -381,32 +411,12 @@ void renderText() {
 void renderCursor() {
     SDL_RenderSetViewport(renderer, &viewport);
 
-    int x = cursorX;
-    int y = 0;
-    auto sublines = splitLine(lines[cursorY], font, WINDOW_WIDTH - editorLeftMargin);
-    if (static_cast<int>(sublines.size()) > 1) {
-        for (int i = 0; i < static_cast<int>(sublines.size() - 1); i++) {
-            x -= static_cast<int>(sublines[i].size());
-            y++;
-        }
-        x = std::max(x, 0);
-    }
-
-    int w,h;
-    TTF_SizeText(font, sublines[y].substr(0, x).c_str(), &w, &h);
-
-    for (int i = 0; i < cursorY; i++) {
-        auto temp = splitLine(lines[i], font, WINDOW_WIDTH - editorLeftMargin); 
-        y += static_cast<int>(temp.size());
-    }
-    std::cout << y << std::endl;
-
     SDL_SetRenderDrawColor(renderer, cursorColor[currentTheme].r, cursorColor[currentTheme].g, cursorColor[currentTheme].b, cursorColor[currentTheme].a);
     SDL_RenderDrawLine(renderer,
-        w + editorLeftMargin,
-        (y * lineHeight + 4),
-        w + editorLeftMargin,
-        (y + 1) * lineHeight
+        rCursorX,
+        rCursorY + 4,
+        rCursorX,
+        rCursorY + lineHeight
         );
 
     SDL_RenderSetViewport(renderer, nullptr);
