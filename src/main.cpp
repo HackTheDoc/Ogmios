@@ -23,6 +23,8 @@ const int SCROLL_SPEED = 1;
 const int BUTTON_SPAN = 5;
 const int BUTTON_WIDTH = 50;
 
+const int DEFAULT_FONT_SIZE = 16;
+
 enum themes { DAY, NIGHT, numberOfThemes };
 
 // Var
@@ -37,7 +39,6 @@ int rCursorX;
 int rCursorY;
 int scrollPosition = 0;
 
-const int DEFAULT_FONT_SIZE = 16;
 int currentFontSize;
 
 int editorLeftMargin;
@@ -176,6 +177,9 @@ bool init() {
     currentTheme = DAY;
 
     #pragma endregion
+
+    SDL_Surface* icon = IMG_Load("icons/Ogmios.png");
+    SDL_SetWindowIcon(window, icon);
 
     SDL_StartTextInput();
 
