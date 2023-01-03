@@ -281,12 +281,24 @@ void insertChar(char c) {
     updateRenderCursorX();
 }
 
-void deleteChar() {
+void deletePreviousChar() {
     if (cursorX > 0) {
         lines[cursorY].erase(cursorX - 1, 1);
         cursorX--;
         updateRenderCursorX();
     }
+}
+
+void deleteNextChar() {
+    if (cursorX < static_cast<int>(lines[cursorY].size())) {
+        lines[cursorY].erase(cursorX, 1);
+    }
+}
+
+void insertTab() {
+    lines[cursorY].insert(cursorX, "\t");
+    cursorX++;
+    updateRenderCursorX();
 }
 
 void insertNewLine() {
@@ -301,7 +313,7 @@ void insertNewLine() {
     viewport.h += lineHeight;
 }
 
-bool deleteLine() {
+bool deleteCurrentLine() {
     bool deleted = false;
 
     if (cursorX == 0 && cursorY > 0) {
@@ -311,6 +323,27 @@ bool deleteLine() {
         cursorX = static_cast<int>(lines[cursorY].size());
         updateRenderCursorX();
 
+        if (oldLine.size()) {
+            lines[cursorY].append(oldLine);
+        }
+
+        viewport.h -= lineHeight;
+
+        deleted = true;
+    }
+
+    return deleted;
+}
+
+bool deleteNextLine() {
+    bool deleted = false;
+
+    if (cursorX == static_cast<int>(lines[cursorY].size()) &&
+        cursorY < static_cast<int>(lines.size() - 1)
+    ) {
+        std::string oldLine = lines[cursorY + 1];
+        lines.erase(lines.begin() + cursorY + 1);
+        
         if (oldLine.size()) {
             lines[cursorY].append(oldLine);
         }
@@ -571,12 +604,20 @@ void handleTextEditorEvents(SDL_Keycode key) {
             jumpToFileEnd();
             break;   
         case SDLK_BACKSPACE:        // SUPPR CHAR
-            if (!deleteLine()) {
-                deleteChar();
+            if (!deleteCurrentLine()) {
+                deletePreviousChar();
+            }
+            break;
+        case SDLK_DELETE:
+            if (!deleteNextLine()) {
+                deleteNextChar();
             }
             break;
         case SDLK_RETURN:           // NEW LINE
             insertNewLine();
+            break;
+        case SDLK_TAB:
+            insertTab();
             break;
         case SDLK_c:                // COPY
             if (SDL_GetModState() & KMOD_CTRL) {
