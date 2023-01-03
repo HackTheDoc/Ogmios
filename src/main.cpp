@@ -97,7 +97,7 @@ std::vector<std::string> splitLine(const std::string& line, TTF_Font* font, int 
     return lines;
 }
 
-void updateRects() {
+void initRects() {
     UI = {0, 0, windowWidth, 30};
     viewport = {0, UI.h, windowWidth, windowHeight - UI.h};
 
@@ -109,6 +109,15 @@ void updateRects() {
     sizeButtonBox = {minusButtonBox.x + minusButtonBox.w, BUTTON_SPAN, 40, UI.h - 10};
     plusButtonBox = {sizeButtonBox.x + sizeButtonBox.w, BUTTON_SPAN, UI.h - 10, UI.h - 10};
     themeButtonBox = {windowWidth - UI.h + 5, BUTTON_SPAN, UI.h - 10, UI.h - 10};
+}
+
+void updateRects() {
+    UI.w = windowWidth;
+    viewport.w = windowWidth;
+
+    scrollBar.x = windowWidth - SCROLL_BAR_WIDTH;
+
+    themeButtonBox.x = windowWidth - UI.h + 5;
 }
 
 bool init() {
@@ -155,6 +164,7 @@ bool init() {
     rCursorX = editorLeftMargin;
     rCursorY = 0;
 
+    initRects();
     updateRects();
 
     #pragma region INIT THEMES
@@ -425,6 +435,9 @@ void updateFontSize(TTF_Font* f, int s) {
         lineHeight += s;
         editorLeftMargin += s;
     }
+
+    updateRenderCursorX();
+    updateRenderCursorY();
 }
 
 

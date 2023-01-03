@@ -14,3 +14,5 @@ Exercice :
 
 B. Nombre a virgule fixe
 On considere lendocage suivant : {bit de signe} {k bits avant la virgule} , { 63 - k bits apres la virgule }
+
+
