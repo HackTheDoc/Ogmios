@@ -9,8 +9,10 @@
 #include "tinyfiledialogs.h"
 
 // Const
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 600;
+const int WINDOW_WIDTH_MIN = 384;
+const int WINDOW_HEIGHT_MIN = 128;
+const int WINDOW_WIDTH_DEFAULT = 800;
+const int WINDOW_HEIGHT_DEFAULT = 600;
 
 const int DEFAULT_EDITOR_LEFT_MARGIN = 24;
 const int DEFAULT_LINE_HEIGHT = 22;
@@ -24,6 +26,9 @@ const int BUTTON_WIDTH = 50;
 enum themes { DAY, NIGHT, numberOfThemes };
 
 // Var
+int windowWidth;
+int windowHeight;
+
 std::vector<std::string> lines;
 
 int cursorX = 0;
@@ -52,17 +57,17 @@ SDL_Color UIBackgroundColor[numberOfThemes];
 
 SDL_Texture* themesIcons[numberOfThemes];
 
-SDL_Rect UI = {0, 0, WINDOW_WIDTH, 30};
-SDL_Rect viewport = {0, UI.h, WINDOW_WIDTH, WINDOW_HEIGHT - UI.h};
+SDL_Rect UI;
+SDL_Rect viewport;
 
-SDL_Rect scrollBar = {WINDOW_WIDTH - SCROLL_BAR_WIDTH, 0, SCROLL_BAR_WIDTH, 0};
+SDL_Rect scrollBar;
 
-SDL_Rect saveButtonBox = {BUTTON_SPAN, BUTTON_SPAN, BUTTON_WIDTH, UI.h-10};
-SDL_Rect loadButtonBox = {BUTTON_SPAN + saveButtonBox.x + saveButtonBox.w, BUTTON_SPAN, BUTTON_WIDTH, UI.h-10};
-SDL_Rect minusButtonBox = {loadButtonBox.x + loadButtonBox.w + BUTTON_SPAN, BUTTON_SPAN, UI.h - 10, UI.h - 10};
-SDL_Rect sizeButtonBox = {minusButtonBox.x + minusButtonBox.w, BUTTON_SPAN, 40, UI.h - 10};
-SDL_Rect plusButtonBox = {sizeButtonBox.x + sizeButtonBox.w, BUTTON_SPAN, UI.h - 10, UI.h - 10};
-SDL_Rect themeButtonBox = {WINDOW_WIDTH - UI.h + 5, BUTTON_SPAN, UI.h - 10, UI.h - 10};
+SDL_Rect saveButtonBox;
+SDL_Rect loadButtonBox;
+SDL_Rect minusButtonBox;
+SDL_Rect sizeButtonBox;
+SDL_Rect plusButtonBox;
+SDL_Rect themeButtonBox;
 
 
 SDL_Texture* LoadTexture(const char* fileName) {
@@ -91,6 +96,19 @@ std::vector<std::string> splitLine(const std::string& line, TTF_Font* font, int 
     return lines;
 }
 
+void updateRects() {
+    UI = {0, 0, windowWidth, 30};
+    viewport = {0, UI.h, windowWidth, windowHeight - UI.h};
+
+    scrollBar = {windowWidth - SCROLL_BAR_WIDTH, 0, SCROLL_BAR_WIDTH, 0};
+
+    saveButtonBox = {BUTTON_SPAN, BUTTON_SPAN, BUTTON_WIDTH, UI.h-10};
+    loadButtonBox = {BUTTON_SPAN + saveButtonBox.x + saveButtonBox.w, BUTTON_SPAN, BUTTON_WIDTH, UI.h-10};
+    minusButtonBox = {loadButtonBox.x + loadButtonBox.w + BUTTON_SPAN, BUTTON_SPAN, UI.h - 10, UI.h - 10};
+    sizeButtonBox = {minusButtonBox.x + minusButtonBox.w, BUTTON_SPAN, 40, UI.h - 10};
+    plusButtonBox = {sizeButtonBox.x + sizeButtonBox.w, BUTTON_SPAN, UI.h - 10, UI.h - 10};
+    themeButtonBox = {windowWidth - UI.h + 5, BUTTON_SPAN, UI.h - 10, UI.h - 10};
+}
 
 bool init() {
     bool success = true;
@@ -100,8 +118,8 @@ bool init() {
         window = SDL_CreateWindow(
             "Ogmios", 
             SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-            WINDOW_WIDTH, WINDOW_HEIGHT,
-            SDL_WINDOW_SHOWN
+            WINDOW_WIDTH_DEFAULT, WINDOW_HEIGHT_DEFAULT,
+            SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
             );
         if (window) {
             std::cout << "Window created!" << std::endl;
@@ -126,11 +144,17 @@ bool init() {
     font = TTF_OpenFont("fonts/Nunito-Regular.ttf", DEFAULT_FONT_SIZE);
     currentFontSize = DEFAULT_FONT_SIZE;
 
+    windowWidth = WINDOW_WIDTH_DEFAULT;
+    windowHeight = WINDOW_HEIGHT_DEFAULT;
+    SDL_SetWindowMinimumSize(window, WINDOW_WIDTH_MIN, WINDOW_HEIGHT_MIN);
+
     lineHeight = DEFAULT_LINE_HEIGHT;
     editorLeftMargin = DEFAULT_EDITOR_LEFT_MARGIN;
 
     rCursorX = editorLeftMargin;
     rCursorY = 0;
+
+    updateRects();
 
     #pragma region INIT THEMES
     //  DAY
@@ -217,7 +241,7 @@ void moveCursorDown() {
         cursorY++;
         cursorX = std::min(cursorX, static_cast<int>(lines[cursorY].size()));
         
-        if ( (cursorY+1) * lineHeight > WINDOW_HEIGHT - UI.h) {
+        if ( (cursorY+1) * lineHeight > windowHeight - UI.h) {
             scroll(1);
         }
         
@@ -345,8 +369,8 @@ void load() {
 
 
 void updateScrollBar() {
-    scrollBar.h = (WINDOW_HEIGHT - UI.h) * (WINDOW_HEIGHT - UI.h) / static_cast<int>(lines.size() * lineHeight);
-    scrollBar.y = scrollPosition * (WINDOW_HEIGHT - UI.h - scrollBar.h) / static_cast<int>(lines.size() * lineHeight);
+    scrollBar.h = (windowHeight - UI.h) * (windowHeight - UI.h) / static_cast<int>(lines.size() * lineHeight);
+    scrollBar.y = scrollPosition * (windowHeight - UI.h - scrollBar.h) / static_cast<int>(lines.size() * lineHeight);
 
     viewport.y = -scrollPosition * lineHeight + UI.h;
 }
@@ -388,7 +412,7 @@ void renderText() {
 
         // Render Line Text
         if (lines[i].size()) {
-            auto tempLines = splitLine(lines[i], font, WINDOW_WIDTH - editorLeftMargin);
+            auto tempLines = splitLine(lines[i], font, windowWidth - editorLeftMargin);
             for (int j = 0; j < static_cast<int>(tempLines.size()); j++) {
                 SDL_Surface* tS = TTF_RenderText_Blended(font, tempLines[j].c_str(), fontColor[currentTheme]);
                 SDL_Texture* tT = SDL_CreateTextureFromSurface(renderer, tS);
@@ -514,7 +538,7 @@ void renderUI() {
     SDL_DestroyTexture(nameTexture);
 
     // Draw UI Border
-    SDL_RenderDrawLine(renderer, 0, UI.h, WINDOW_WIDTH, UI.h);
+    SDL_RenderDrawLine(renderer, 0, UI.h, windowWidth, UI.h);
 
     TTF_SetFontSize(font, currentFontSize);
 }
@@ -598,7 +622,7 @@ void handleUIEvents() {
         updateTheme();
     }
     //  Move mouse in editor
-    else if (mousePos.y >= UI.h && mousePos.y < WINDOW_HEIGHT && mousePos.x >= 0 && mousePos.x < WINDOW_WIDTH) {
+    else if (mousePos.y >= UI.h && mousePos.y < windowHeight && mousePos.x >= 0 && mousePos.x < windowWidth) {
         int lineIndex = (mousePos.y - UI.h) / lineHeight;
         
         if (lineIndex < static_cast<int>(lines.size())) {
@@ -629,6 +653,13 @@ void handleUIEvents() {
     }
 }
 
+void resizeWindow(int w, int h) {
+    windowWidth = w;
+    windowHeight = h;
+
+    updateRects();
+}
+
 bool loop() {
     bool looping = true;
 
@@ -637,6 +668,11 @@ bool loop() {
         switch (event.type) {
             case SDL_QUIT:
                 looping = false;
+                break;
+            case SDL_WINDOWEVENT:
+                if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+                    resizeWindow(event.window.data1, event.window.data2);
+                }
                 break;
             case SDL_TEXTINPUT:
                 insertChar(*event.text.text);
