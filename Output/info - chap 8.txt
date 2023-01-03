@@ -1,0 +1,16 @@
+CHAP 8 - Representation des nombres reels
+
+I. Representation des flottants
+A. Nombres dyadiques
+Definition : un nombre dyadique s'ecrit k = n / (2^p) avec n dans Z et p dans N
+Exemple : 4.25 = 17 / 4 donc 4.25 est dyadique et on peut ecrire (4.25)_10 = (100.01)_2
+
+Methode :
+    Pour passer d'une ecriture en binaire a l'ecriture decimale :
+        Si k = 
+
+Exercice :
+1) Convertir (15.9375)_10 en binaire : (1010.1)_2
+
+B. Nombre a virgule fixe
+On considere lendocage suivant : {bit de signe} {k bits avant la virgule} , { 63 - k bits apres la virgule }

@@ -629,6 +629,16 @@ void handleTextEditorEvents(SDL_Keycode key) {
                 lines[cursorY].append(SDL_GetClipboardText());
             }
             break;
+        case SDLK_s:
+            if (SDL_GetModState() & KMOD_CTRL) {
+                save();
+            }
+            break;
+        case SDLK_o:
+            if (SDL_GetModState() & KMOD_CTRL) {
+                load();
+            }
+            break;
         default:
             break;
     }

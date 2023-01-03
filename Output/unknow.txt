@@ -1,0 +1,7 @@
+
+ok alors, rappellons nous juste ou on s'est arreter ? bon bah go : mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
+
+ouais c'est ca en gros, il faut que je fixe la position du curseur sur l'ecran quand je le deplace a droite ou a gauche en fonction de la width d'une ligne
+idem pour le deplacement haut et bas si on est sur une ligne break
+
+objectif de temps : 72h .... on verra bien si ca passe xD
