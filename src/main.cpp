@@ -281,11 +281,28 @@ void moveCursorRight() {
     if (cursorX == static_cast<int>(lines[cursorY].size())) {
         moveCursorDown();
         cursorX = 0;
+        updateRenderCursorX();
     }
     else {
-        cursorX++;
+        auto sublines = splitLine(lines[cursorY], font, windowWidth - editorLeftMargin);
+        
+        if (sublines.size()) {
+            int y = rCursorY / lineHeight;
+            int x = 0;
+            for (int i = 0; i <= y-cursorY; i++) {
+                x += static_cast<int>(sublines.size() -1);
+            }
+
+            TTF_SizeText(font, sublines[y - cursorY].substr(0, x).c_str(), &rCursorX, nullptr);
+            rCursorX += editorLeftMargin;
+
+            cursorX++;
+        }
+        else {
+            cursorX++;
+            updateRenderCursorX();
+        }
     }
-    updateRenderCursorX();
 }
 
 
@@ -784,6 +801,8 @@ void kill() {
     window = nullptr;
     renderer = nullptr;
     SDL_Quit();
+
+    std::cout << "Window killed!" << std::endl;
 }
 
 int main(int argc, char *argv[]) {
